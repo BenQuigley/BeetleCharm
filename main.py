@@ -14,25 +14,82 @@ logger.info('Beetle Charm initialized.')
 
 
 def invert_left(x, y, width, height):
-    return (x+width, y, -1 * width, height)
+    return (x, y, -1 * width, height)
 
 
 def invert_down(x, y, width, height):
-    return (x, y+height, width, -1 * height)
+    return (x, y, width, -1 * height)
+
+
+start = (16, 0, 8, 8)
+assert invert_left(*start) == (16, 0, -8, 8)
+assert invert_down(*start) == (16, 0, 8, -8)
+
+
+def eight_directions(n, ne, e):
+    '''
+    Return the following views of an asset, in order.
+    :param n: the asset's north-facing view.
+    :param ne: the asset's northeast-facing view.
+    :param e: the asset's east-facing view.
+    '''
+    se = invert_down(*ne)
+    s = invert_down(*n)
+    sw = invert_left(*se)
+    w = invert_left(*e)
+    nw = invert_left(*ne)
+    return (n, ne, e, se, s, sw, w, nw)
+
+
+def advance(direction: int, backwards=False):
+    '''
+    With 0 being north, 2 east, 4 south, etc.,
+    :return: (dx, dy) for the direction given.
+    '''
+    if backwards is True:
+        direction += 4
+    direction %= 8
+    (dx, dy) = ((0, -1),   # north
+                (1, -1),   # northeast
+                (1, 0),    # east
+                (1, 1),    # southeast
+                (0, 1),    # south
+                (-1, 1),   # southwest
+                (-1, 0),   # west
+                (-1, -1),  # northwest
+                )[direction]
+    logger.info("Advancing {}in direction {}: dx= {}; dy={}".format(
+                        'backwards ' if backwards else '', direction,
+                        dx, dy))
+    return (dx, dy)
 
 
 class Sprite:
     '''
     Anything simple enough to be drawn just by blitting it to the screen.
     '''
-    def __init__(self, x, y, asset_coords, trans=0):
+    def __init__(self, x, y, asset_coords_n, asset_coords_ne=None,
+                 asset_coords_e=None, transparent_color=0):
         self.x = x
         self.y = y
-        self.asset_coords = asset_coords
-        self.trans = trans
+        self.asset = asset_coords_n
+        if asset_coords_ne and asset_coords_e:
+            self.asset_rotation = eight_directions(asset_coords_n,
+                                                   asset_coords_ne,
+                                                   asset_coords_e)
+        self.asset = asset_coords_n[:]
+        self.trans = transparent_color
+
+    def point_asset(self, direction):
+        '''
+        Return the correct asset coordinates for the direction the sprite is
+        pointing.
+        '''
+        assert 0 <= direction <= 7  # with 0 being north, 2 east, 4 south, etc.
+        self.asset = self.asset_rotation[direction]
 
     def draw(self):
-        pyxel.blt(self.x, self.y, 0, *self.asset_coords, self.trans)
+        pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)
 
 
 class VisibleMap:
@@ -72,46 +129,35 @@ class Player():
     def __init__(self):
         self.x = 0
         self.y = 0
-        self.assets = ((0, 0, 8, 8),    # N
-                       (8, 0, 8, 8),    # NE
-                       (0, 8, -8, -8),  # E
-                       (8, 0, -8, -8),  # SE
-                       (0, 8, 8, -8),   # S (8, 8, 8, -8),   # SW
-                       (8, 8, -8, -8),  # W
-                       (8, 0, -8, -8),  # NW
+        self.assets = ((0, 0, 8, 8),  # N
+                       (8, 0, 8, 8),  # NE
+                       (0, 8, 8, 8),  # E
                        )
-        self.turn = random.randrange(len(self.assets))  # 1: N, 2: NE
-        self.pointing = [random.randrange(-1, 2) for _ in range(2)]
+        self.pointing = random.randrange(9)
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
-        self.sprite = Sprite(self.x, self.y, self.asset_coords, trans=7)
+        self.sprite = Sprite(self.x, self.y, *self.assets, transparent_color=7)
         self.game_location = []
         self.points = 0
         self.alive = True
 
-    @property
-    def asset_coords(self):
-        '''
-        Return the correct asset coordinates for the direction the player is
-        pointing.
-        '''
-        return self.assets[self.turn]
-
-    def update(self):
-        # todo turn sprite
-        pass
-
     def rotate(self, direction):
         assert direction in (-1, 0, 1)  # counterclockwise, straight, clockwise
-        self.turn += direction
+        self.pointing += direction
+        self.pointing %= 8
+        logger.info(f"Turning {direction} to {self.pointing}")
 
-    def walk(self, direction='forwards'):
-        if direction == 'forwards':
-            self.x += self.pointing[0]
-            self.y += self.pointing[1]
-        elif direction == 'backwards':
-            self.x -= self.pointing[0]
-            self.y -= self.pointing[1]
+    def update(self):
+        self.sprite.x = self.x
+        self.sprite.y = self.y
+        self.sprite.point_asset(self.pointing)
+
+    def walk(self, backwards=False):
+        movement = advance(self.pointing, backwards=backwards)
+        self.x += movement[0]
+        self.y += movement[1]
+        logger.info("Walking in {} direction to {}, {}".format(
+                    movement, self.x, self.y))
 
     def draw(self):
         '''
@@ -141,10 +187,10 @@ class App:
         elif pyxel.btnp(pyxel.KEY_W):
             self.player.walk()
         elif pyxel.btnp(pyxel.KEY_S):
-            self.player.walk('backwards')
+            self.player.walk(backwards=True)
         elif pyxel.btnp(pyxel.KEY_A):
             self.player.rotate(-1)
-        elif pyxel.btnp(pyxel.KEY_A):
+        elif pyxel.btnp(pyxel.KEY_D):
             self.player.rotate(1)
 
         for objekt in self.things:

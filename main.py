@@ -17,13 +17,14 @@ class Sprite:
     '''
     Anything simple enough to be drawn just by blitting it to the screen.
     '''
-    def __init__(self, x, y, asset_coords):
+    def __init__(self, x, y, asset_coords, trans=0):
         self.x = x
         self.y = y
         self.asset_coords = asset_coords
+        self.trans = trans
 
     def draw(self):
-        pyxel.blt(self.x, self.y, 0, *self.asset_coords, 0)
+        pyxel.blt(self.x, self.y, 0, *self.asset_coords, self.trans)
 
 
 class VisibleMap:
@@ -72,7 +73,7 @@ class Player():
         self.pointing = [random.randrange(-1, 2) for _ in range(2)]
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
-        self.sprite = Sprite(self.x, self.y, self.asset_coords)
+        self.sprite = Sprite(self.x, self.y, self.asset_coords, trans=7)
         self.game_location = []
         self.points = 0
         self.alive = True

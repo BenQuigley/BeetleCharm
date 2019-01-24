@@ -13,6 +13,14 @@ logger.setLevel(logging.DEBUG)
 logger.info('Beetle Charm initialized.')
 
 
+def invert_left(x, y, width, height):
+    return (x+width, y, -1 * width, height)
+
+
+def invert_down(x, y, width, height):
+    return (x, y+height, width, -1 * height)
+
+
 class Sprite:
     '''
     Anything simple enough to be drawn just by blitting it to the screen.
@@ -41,8 +49,11 @@ class VisibleMap:
         screen_positions = [[i * 8, j * 8] for j in range(15)
                             for i in range(20)]
         self.plates = []
-        for pos in screen_positions:
-            sprite = Sprite(*pos, random.choice(plate_assets))
+        for i, pos in enumerate(screen_positions):
+            tile = plate_assets[0]  # random.choice(plate_assets)
+            if i % 2 == 0:
+                tile = invert_down(*tile)
+            sprite = Sprite(*pos, tile)
             self.plates.append(sprite)
 
     def update(self):

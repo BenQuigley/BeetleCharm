@@ -107,7 +107,11 @@ class VisibleMap:
                             for i in range(20)]
         self.plates = []
         for i, pos in enumerate(screen_positions):
-            tile = plate_assets[0]  # random.choice(plate_assets)
+            tile = random.choice(plate_assets)
+            if random.random() > .5:
+                tile = invert_down(*tile)
+            if random.random() > .5:
+                tile = invert_left(*tile)
             if i % 2 == 0:
                 tile = invert_down(*tile)
             sprite = Sprite(*pos, tile)

@@ -1,5 +1,6 @@
-import pyxel
 import logging
+import pyxel
+import random
 
 logger = logging.Logger('Beetle Charm logger.')
 logger.setLevel(logging.INFO)
@@ -8,18 +9,49 @@ logger.info('Beetle Charm initialized.')
 
 class Sprite:
     '''
-    Just somesprite.
+    Anything simple enough to be drawn just by blitting it to the screen.
+    '''
+
+    def __init__(self, x, y, asset_coords):
+        self.x = x
+        self.y = y
+        self.asset_coords = asset_coords
+
+    def draw(self):
+        pyxel.blt(self.x, self.y, 0, *self.asset_coords)
+
+
+class Plate(Sprite):
+    pass
+
+
+class VisibleMap:
+    '''
+    The map on which the game      +++++
+    is played.                     +ooo+
+    Drawable tiles:   +            +ooo+
+    Drawn tiles:      o     Map:   +ooo+
+    To be determined: -            +++++
     '''
     def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.asset_coords = [None] * 4
+        self.coords = [0, 0, 90, 90]
+        plate_assets = (
+                         (16, 0, 8, 8),
+                         (24, 0, 8, 8),
+                         (16, 8, 8, 8),
+                         (24, 8, 8, 8),
+                        )
+        screen_positions = [([i * 8, j * 8] for j in range(3)
+                            for i in range(3))]
+        self.plates = [Sprite(*pos, random.choice(plate_assets)) for pos in
+                       screen_positions]
 
     def update(self):
         pass
 
     def draw(self):
-        pass
+        for plate in self.plates:
+            plate.draw()
 
 
 class Player(Sprite):
@@ -27,10 +59,13 @@ class Player(Sprite):
     The person playing the game.
     '''
     def __init__(self):
-        super().__init__()
+        super().__init__(x=0, y=0, asset_coords=[4, 3, 8, 8])
+        self.game_location = []
         self.points = 0
         self.alive = True
-        self.asset_coords = [4, 3, 8, 8]
+
+    def update(self):
+        pass
 
     def draw(self):
         pyxel.blt(self.x, self.y, 0, *self.asset_coords)
@@ -44,25 +79,27 @@ class App:
         pyxel.init(160, 120, caption="Beetle Charm")
         pyxel.load('assets/beetle-box.pyxel')
         p = Player()
-        self.sprites = [p]
-
+        self.things = [p]
         pyxel.playm(0, loop=True)
-        logger.info("Beetle Charm loaded successfully.")
-        pyxel.run(self.update, self.draw)
+
+    def run(self):
+        pyxel.run(self.update)
 
     def update(self):
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
-
-        for objekt in self.sprites:
-            objekt.draw()
+        for objekt in self.things:
+            objekt.update()
 
     def draw(self):
-        pass
+        for objekt in self.things:
+            objekt.draw()
 
 
 def main():
-    App()
+    a = App()
+    logger.info("Beetle Charm loaded successfully.")
+    a.run()
     logger.info("Thank you for playing.")
 
 

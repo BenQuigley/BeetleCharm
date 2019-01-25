@@ -5,11 +5,10 @@ import itertools
 
 import pdb
 
-logger = logging.getLogger("Beetle-Charm-logger")
+logger = logging.getLogger("Beetle Charm logger")
 handler = logging.StreamHandler()
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-# 'Beetle Charm logger.', level=logging.INFO)
 logger.info('Beetle Charm initialized.')
 
 

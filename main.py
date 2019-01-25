@@ -53,13 +53,11 @@ def eight_directions(n, ne, e):
     return (n, ne, e, se, s, sw, w, nw)
 
 
-def advance(direction: int, backwards=False):
+def advance(direction: int, speed: int):
     '''
     With 0 being north, 2 east, 4 south, etc.,
     :return: (dx, dy) for the direction given.
     '''
-    if backwards is True:
-        direction += 4
     direction %= 8
     (dx, dy) = ((0, -1),   # north
                 (1, -1),   # northeast
@@ -70,10 +68,9 @@ def advance(direction: int, backwards=False):
                 (-1, 0),   # west
                 (-1, -1),  # northwest
                 )[direction]
-    logger.info("Advancing {}in direction {}: dx= {}; dy={}".format(
-                        'backwards ' if backwards else '', direction,
-                        dx, dy))
-    return (dx, dy)
+    logger.info("Advancing in direction {}: dx= {}; dy={}".format(
+                         direction, dx, dy))
+    return (dx * speed, dy * speed)
 
 
 class Sprite:
@@ -155,6 +152,7 @@ class Player():
                     self.x, self.y, self.pointing))
         self.sprite = Sprite(self.x, self.y, *self.assets, transparent_color=7)
         self.game_location = []
+        self.speed = 0
         self.points = 0
         self.alive = True
 
@@ -165,12 +163,13 @@ class Player():
         logger.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
+        self.walk()
         self.sprite.x = self.x
         self.sprite.y = self.y
         self.sprite.point_asset(self.pointing)
 
-    def walk(self, backwards=False):
-        movement = advance(self.pointing, backwards=backwards)
+    def walk(self):
+        movement = advance(self.pointing, self.speed)
         x = self.x + movement[0]
         y = self.y + movement[1]
         hypothetical_params = [x, y, self.sprite.asset[2],
@@ -178,8 +177,8 @@ class Player():
         if in_bounds(hypothetical_params, self.bounds):
             self.x = x
             self.y = y
-            logger.info("Walking in {} direction to {}, {}".format(
-                        movement, self.x, self.y))
+            logger.info("Walking in {} direction to {}, {}".format(movement,
+                        self.x, self.y))
         else:
             logger.info("Bumped into a wall.")
 
@@ -210,9 +209,9 @@ class App:
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
         elif pyxel.btnp(pyxel.KEY_W):
-            self.player.walk()
+            self.player.speed += 1
         elif pyxel.btnp(pyxel.KEY_S):
-            self.player.walk(backwards=True)
+            self.player.speed -= 1
         elif pyxel.btnp(pyxel.KEY_A):
             self.player.rotate(-1)
         elif pyxel.btnp(pyxel.KEY_D):

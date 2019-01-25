@@ -162,12 +162,16 @@ class Player():
         self.x = random.randrange(bounds[0], bounds[2])
         self.y = random.randrange(bounds[1], bounds[3])
         self.assets = {
-                       'main': [(0, 0, 8, 8),
+                       'main': [
+                                (0, 0, 8, 8),
                                 (8, 0, 8, 8),
-                                (0, 8, 8, 8)],
-                       'alt': [(8, 8, 8, 8),
+                                (0, 8, 8, 8),
+                               ],
+                       'alt': [
+                               (8, 16, 8, 8),
+                               (8, 8, 8, 8),
                                (0, 16, 8, 8),
-                               (0, 24, 8, 8)],
+                               ],
                       }
         self.pointing = random.randrange(8)  # One of the eight directions.
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
@@ -192,18 +196,20 @@ class Player():
         self.sprite.point_asset(self.pointing)
 
     def walk(self):
-        movement = advance(self.pointing, self.speed)
-        x = self.x + movement[0]
-        y = self.y + movement[1]
-        hypothetical_params = [x, y, self.sprite.asset[2],
-                               self.sprite.asset[3]]
-        if in_bounds(hypothetical_params, self.bounds):
-            self.x = x
-            self.y = y
-            logger.info("Walking in {} direction to {}, {}".format(movement,
-                        self.x, self.y))
-        else:
-            logger.info("Bumped into a wall.")
+        if self.speed:
+            movement = advance(self.pointing, self.speed)
+            self.sprite.asset_key = 'alt' if self.sprite.asset_key == 'main' else 'main'  # noqa
+            x = self.x + movement[0]
+            y = self.y + movement[1]
+            hypothetical_params = [x, y, self.sprite.asset[2],
+                                   self.sprite.asset[3]]
+            if in_bounds(hypothetical_params, self.bounds):
+                self.x = x
+                self.y = y
+                logger.info("Walking in {} direction to {}, {}".format(
+                            movement, self.x, self.y))
+            else:
+                logger.info("Bumped into a wall.")
 
     def draw(self):
         '''

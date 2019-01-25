@@ -26,6 +26,18 @@ assert invert_left(*start) == (16, 0, -8, 8)
 assert invert_down(*start) == (16, 0, 8, -8)
 
 
+def in_bounds(asset, bounds):
+    '''
+    :param coords: A 2-tuple of x, y coordinates.
+    :param bounds: A 4-tuple: x, y, width, height.
+    '''
+    in_bounds_left = asset[0] >= bounds[0]
+    in_bounds_right = asset[0] + asset[2] <= bounds[0] + bounds[2]
+    in_bounds_up = asset[1] >= bounds[1]
+    in_bounds_down = asset[1] + asset[3] <= bounds[1] + bounds[2]
+    return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
+
+
 def eight_directions(n, ne, e):
     '''
     Return the following views of an asset, in order.
@@ -130,14 +142,15 @@ class Player():
     '''
     The person playing the game.
     '''
-    def __init__(self):
-        self.x = 0
-        self.y = 0
+    def __init__(self, bounds):
+        self.bounds = bounds
+        self.x = random.randrange(bounds[0], bounds[2])
+        self.y = random.randrange(bounds[1], bounds[3])
         self.assets = ((0, 0, 8, 8),  # N
                        (8, 0, 8, 8),  # NE
                        (0, 8, 8, 8),  # E
                        )
-        self.pointing = random.randrange(9)
+        self.pointing = random.randrange(8)  # One of the eight directions.
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
         self.sprite = Sprite(self.x, self.y, *self.assets, transparent_color=7)
@@ -158,10 +171,17 @@ class Player():
 
     def walk(self, backwards=False):
         movement = advance(self.pointing, backwards=backwards)
-        self.x += movement[0]
-        self.y += movement[1]
-        logger.info("Walking in {} direction to {}, {}".format(
-                    movement, self.x, self.y))
+        x = self.x + movement[0]
+        y = self.y + movement[1]
+        hypothetical_params = [x, y, self.sprite.asset[2],
+                               self.sprite.asset[3]]
+        if in_bounds(hypothetical_params, self.bounds):
+            self.x = x
+            self.y = y
+            logger.info("Walking in {} direction to {}, {}".format(
+                        movement, self.x, self.y))
+        else:
+            logger.info("Bumped into a wall.")
 
     def draw(self):
         '''
@@ -175,9 +195,10 @@ class App:
     Main game code.
     '''
     def __init__(self):
-        pyxel.init(160, 120, caption="Beetle Charm")
+        bounds = (0, 0, 160, 120)
+        pyxel.init(*bounds[2:], caption="Beetle Charm")
         pyxel.load('assets/beetle-box.pyxel')
-        self.player = Player()
+        self.player = Player(bounds)
         self.visible_map = VisibleMap()
         self.things = [self.visible_map, self.player]
         pyxel.playm(0, loop=True)

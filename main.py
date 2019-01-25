@@ -80,11 +80,12 @@ class Sprite:
                  asset_coords_e=None, transparent_color=0):
         self.x = x
         self.y = y
-        self.asset = asset_coords_n
+        self.asset_lib = {}
         if asset_coords_ne and asset_coords_e:
-            self.asset_rotation = eight_directions(asset_coords_n,
-                                                   asset_coords_ne,
-                                                   asset_coords_e)
+            self.asset_lib['main'] = eight_directions(asset_coords_n,
+                                                      asset_coords_ne,
+                                                      asset_coords_e)
+
         self.asset = asset_coords_n[:]
         self.trans = transparent_color
 
@@ -94,7 +95,7 @@ class Sprite:
         pointing.
         '''
         assert 0 <= direction <= 7  # with 0 being north, 2 east, 4 south, etc.
-        self.asset = self.asset_rotation[direction]
+        self.asset = self.asset_lib['main'][direction]
 
     def draw(self):
         pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)

@@ -37,13 +37,16 @@ def in_bounds(asset, bounds):
     return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
 
 
-def eight_directions(n, ne, e):
+def eight_directions(asset):
     '''
     Return the following views of an asset, in order.
     :param n: the asset's north-facing view.
     :param ne: the asset's northeast-facing view.
     :param e: the asset's east-facing view.
     '''
+    n = asset['n']
+    ne = asset['ne']
+    e = asset['e']
     se = invert_down(*ne)
     s = invert_down(*n)
     sw = invert_left(*se)
@@ -76,17 +79,18 @@ class Sprite:
     '''
     Anything simple enough to be drawn just by blitting it to the screen.
     '''
-    def __init__(self, x, y, asset_coords_n, asset_coords_ne=None,
-                 asset_coords_e=None, transparent_color=0):
+    def __init__(self, x, y, asset_coords, transparent_color=0):
+        '''
+        :param asset_coords: Expects a dict, but can handle a regular asset.
+        '''
+        if type(asset_coords) != dict:
+            asset_coords = {'n': asset_coords}
         self.x = x
         self.y = y
         self.asset_lib = {}
-        if asset_coords_ne and asset_coords_e:
-            self.asset_lib['main'] = eight_directions(asset_coords_n,
-                                                      asset_coords_ne,
-                                                      asset_coords_e)
-
-        self.asset = asset_coords_n[:]
+        if asset_coords.get('ne') and asset_coords.get('e'):
+            self.asset_lib['main'] = eight_directions(asset_coords)
+        self.asset = asset_coords['n']
         self.trans = transparent_color
 
     def point_asset(self, direction):
@@ -143,14 +147,15 @@ class Player():
         self.bounds = bounds
         self.x = random.randrange(bounds[0], bounds[2])
         self.y = random.randrange(bounds[1], bounds[3])
-        self.assets = ((0, 0, 8, 8),  # N
-                       (8, 0, 8, 8),  # NE
-                       (0, 8, 8, 8),  # E
-                       )
+        self.assets = {'n': (0, 0, 8, 8),
+                       'ne': (8, 0, 8, 8),
+                       'e': (0, 8, 8, 8),
+                       'ne_alt': (8, 8, 8, 8),
+                       }
         self.pointing = random.randrange(8)  # One of the eight directions.
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
-        self.sprite = Sprite(self.x, self.y, *self.assets, transparent_color=7)
+        self.sprite = Sprite(self.x, self.y, self.assets, transparent_color=7)
         self.game_location = []
         self.speed = 0
         self.points = 0

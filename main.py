@@ -37,22 +37,32 @@ def in_bounds(asset, bounds):
     return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
 
 
-def eight_directions(asset):
+def eight_directions(n, ne, e):
+    '''
+    We can generate all eight directions if N, NE, and E are supplied.
+    '''
+    se = invert_down(*ne)
+    s = invert_down(*n)
+    sw = invert_left(*se)
+    w = invert_left(*e)
+    nw = invert_left(*ne)
+    return [n, ne, e, se, s, sw, w, nw]
+
+
+def build_asset_lib(asset):
     '''
     Return the following views of an asset, in order.
     :param n: the asset's north-facing view.
     :param ne: the asset's northeast-facing view.
     :param e: the asset's east-facing view.
     '''
-    n = asset['n']
-    ne = asset['ne']
-    e = asset['e']
-    se = invert_down(*ne)
-    s = invert_down(*n)
-    sw = invert_left(*se)
-    w = invert_left(*e)
-    nw = invert_left(*ne)
-    return (n, ne, e, se, s, sw, w, nw)
+    main = asset['main']
+    alt = asset.get('alt') or ()
+    if len(main) >= 3:
+        asset['main'] = eight_directions(*main)
+        if alt:
+            asset['alt'] = eight_directions(*alt)
+    return asset
 
 
 def advance(direction: int, speed: int):
@@ -79,27 +89,31 @@ class Sprite:
     '''
     Anything simple enough to be drawn just by blitting it to the screen.
     '''
-    def __init__(self, x, y, asset_coords, transparent_color=0):
+    def __init__(self, x, y, single_asset=None, asset_lib=None,
+                 transparent_color=0):
         '''
-        :param asset_coords: Expects a dict, but can handle a regular asset.
+        :param asset: Expects a dict, but can handle a regular asset.
         '''
-        if type(asset_coords) != dict:
-            asset_coords = {'n': asset_coords}
         self.x = x
         self.y = y
-        self.asset_lib = {}
-        if asset_coords.get('ne') and asset_coords.get('e'):
-            self.asset_lib['main'] = eight_directions(asset_coords)
-        self.asset = asset_coords['n']
+        if single_asset:
+            asset_lib = {'main': [single_asset]}
+        self.asset_key = 'main'
+        self.asset_lib = build_asset_lib(asset_lib)
+        self.asset = asset_lib['main'][0]
         self.trans = transparent_color
 
     def point_asset(self, direction):
         '''
         Return the correct asset coordinates for the direction the sprite is
         pointing.
+        :param direction: Int between 0 and 8, with 0: N, 1: NE, etc.
         '''
-        assert 0 <= direction <= 7  # with 0 being north, 2 east, 4 south, etc.
-        self.asset = self.asset_lib['main'][direction]
+        direction %= 8
+        try:
+            self.asset = self.asset_lib[self.asset_key][direction]
+        except IndexError:
+            pdb.set_trace()
 
     def draw(self):
         pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)
@@ -127,7 +141,7 @@ class VisibleMap:
                 tile = invert_left(*tile)
             if i % 2 == 0:
                 tile = invert_down(*tile)
-            sprite = Sprite(*pos, tile)
+            sprite = Sprite(*pos, single_asset=tile)
             self.plates.append(sprite)
 
     def update(self):
@@ -147,15 +161,19 @@ class Player():
         self.bounds = bounds
         self.x = random.randrange(bounds[0], bounds[2])
         self.y = random.randrange(bounds[1], bounds[3])
-        self.assets = {'n': (0, 0, 8, 8),
-                       'ne': (8, 0, 8, 8),
-                       'e': (0, 8, 8, 8),
-                       'ne_alt': (8, 8, 8, 8),
-                       }
+        self.assets = {
+                       'main': [(0, 0, 8, 8),
+                                (8, 0, 8, 8),
+                                (0, 8, 8, 8)],
+                       'alt': [(8, 8, 8, 8),
+                               (0, 16, 8, 8),
+                               (0, 24, 8, 8)],
+                      }
         self.pointing = random.randrange(8)  # One of the eight directions.
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
-        self.sprite = Sprite(self.x, self.y, self.assets, transparent_color=7)
+        self.sprite = Sprite(self.x, self.y, asset_lib=self.assets,
+                             transparent_color=7)
         self.game_location = []
         self.speed = 0
         self.points = 0

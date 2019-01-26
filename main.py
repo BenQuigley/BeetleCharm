@@ -161,6 +161,7 @@ class Player():
         self.bounds = bounds
         self.x = random.randrange(bounds[0], bounds[2])
         self.y = random.randrange(bounds[1], bounds[3])
+        self.tempo = 0
         self.assets = {
                        'main': [
                                 (0, 0, 8, 8),
@@ -190,7 +191,15 @@ class Player():
         logger.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
-        self.walk()
+        self.tempo += 1
+        # Speed limit:
+        if self.speed < -1:
+            self.speed = -1
+        elif self.speed > 2:
+            self.speed = 2
+        if self.tempo % 2 == 0:
+            self.walk()
+        # Update sprite with properties
         self.sprite.x = self.x
         self.sprite.y = self.y
         self.sprite.point_asset(self.pointing)

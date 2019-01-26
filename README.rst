@@ -12,3 +12,8 @@ To install and run:
     $ cd BeetleCharm
     $ pipenv install
     $ pipenv run python main.py
+
+To Do
+-----
+
+1. Deal with asymmetrical dots being reflected backwards

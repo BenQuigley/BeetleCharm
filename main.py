@@ -178,7 +178,7 @@ class Player():
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
         self.sprite = Sprite(self.x, self.y, asset_lib=self.assets,
-                             transparent_color=7)
+                             transparent_color=4)
         self.game_location = []
         self.speed = 0
         self.points = 0

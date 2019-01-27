@@ -37,16 +37,13 @@ def in_bounds(asset, bounds):
     return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
 
 
-def eight_directions(n, ne, e):
+def four_directions(n, e):
     '''
-    We can generate all eight directions if N, NE, and E are supplied.
+    We can generate all directions if N and E are supplied.
     '''
-    se = invert_down(*ne)
     s = invert_down(*n)
-    sw = invert_left(*se)
     w = invert_left(*e)
-    nw = invert_left(*ne)
-    return [n, ne, e, se, s, sw, w, nw]
+    return [n, e, s, w]
 
 
 def build_asset_lib(asset):
@@ -58,10 +55,10 @@ def build_asset_lib(asset):
     '''
     main = asset['main']
     alt = asset.get('alt') or ()
-    if len(main) >= 3:
-        asset['main'] = eight_directions(*main)
+    if len(main) >= 2:
+        asset['main'] = four_directions(*main)
         if alt:
-            asset['alt'] = eight_directions(*alt)
+            asset['alt'] = four_directions(*alt)
     return asset
 
 
@@ -110,10 +107,11 @@ class Sprite:
         :param direction: Int between 0 and 8, with 0: N, 1: NE, etc.
         '''
         direction %= 8
-        try:
-            self.asset = self.asset_lib[self.asset_key][direction]
-        except IndexError:
-            pdb.set_trace()
+        if direction % 2 == 0:
+            try:
+                self.asset = self.asset_lib[self.asset_key][int(direction/2)]
+            except IndexError:
+                pdb.set_trace()
 
     def draw(self):
         pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)
@@ -164,17 +162,15 @@ class Player():
         self.tempo = 0
         self.assets = {
                        'main': [
-                                (0, 0, 8, 8),
-                                (8, 0, 8, 8),
-                                (0, 8, 8, 8),
+                                (0, 0, 8, 8),  # N
+                                (0, 8, 8, 8),  # E
                                ],
                        'alt': [
-                               (8, 16, 8, 8),
-                               (8, 8, 8, 8),
-                               (0, 16, 8, 8),
+                               (8, 16, 8, 8),  # N
+                               (0, 16, 8, 8),  # E
                                ],
                       }
-        self.pointing = random.randrange(8)  # One of the eight directions.
+        self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.
         logger.info("Beetle initialized at {}, {} pointing at {}.".format(
                     self.x, self.y, self.pointing))
         self.sprite = Sprite(self.x, self.y, asset_lib=self.assets,

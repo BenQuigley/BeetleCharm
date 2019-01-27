@@ -100,19 +100,6 @@ class Sprite:
         self.asset = asset_lib['main'][0]
         self.trans = transparent_color
 
-    def point_asset(self, direction):
-        '''
-        Return the correct asset coordinates for the direction the sprite is
-        pointing.
-        :param direction: Int between 0 and 8, with 0: N, 1: NE, etc.
-        '''
-        direction %= 8
-        if direction % 2 == 0:
-            try:
-                self.asset = self.asset_lib[self.asset_key][int(direction/2)]
-            except IndexError:
-                pdb.set_trace()
-
     def draw(self):
         pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)
 
@@ -182,6 +169,7 @@ class Player():
 
     def rotate(self, direction):
         assert direction in (-1, 0, 1)  # counterclockwise, straight, clockwise
+        self.prev_pointing = self.pointing
         self.pointing += direction
         self.pointing %= 8
         logger.info(f"Turning {direction} to {self.pointing}")
@@ -198,7 +186,19 @@ class Player():
         # Update sprite with properties
         self.sprite.x = self.x
         self.sprite.y = self.y
-        self.sprite.point_asset(self.pointing)
+        self.update_asset()
+
+    def update_asset(self):
+        '''
+
+        Update the sprite to use the correct asset for the direction the sprite
+        is pointing and its walk cycle.
+        '''
+        if self.pointing % 2 == 0:
+            index = int(self.pointing/2)
+        else:
+            index = int(self.prev_pointing/2)
+        self.sprite.asset = self.sprite.asset_lib[self.sprite.asset_key][index]
 
     def walk(self):
         if self.speed:

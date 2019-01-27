@@ -166,8 +166,8 @@ class Player():
                                 (0, 8, 8, 8),  # E
                                ],
                        'alt': [
-                               (8, 16, 8, 8),  # N
-                               (0, 16, 8, 8),  # E
+                               (8, 0, 8, 8),  # N
+                               (8, 8, 8, 8),  # E
                                ],
                       }
         self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.

@@ -33,7 +33,7 @@ def in_bounds(asset, bounds):
     in_bounds_left = asset[0] >= bounds[0]
     in_bounds_right = asset[0] + asset[2] <= bounds[0] + bounds[2]
     in_bounds_up = asset[1] >= bounds[1]
-    in_bounds_down = asset[1] + asset[3] <= bounds[1] + bounds[2]
+    in_bounds_down = asset[1] + asset[3] <= bounds[1] + bounds[3]
     return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
 
 

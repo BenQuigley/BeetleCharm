@@ -16,4 +16,4 @@ To install and run:
 To Do
 -----
 
-1. Deal with asymmetrical dots being reflected backwards
+1. Fix beetle being able to walk down bottom of screen

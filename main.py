@@ -234,7 +234,7 @@ class App:
     '''
     def __init__(self):
         self.start = time.clock()
-        bounds = (0, 0, 255, 255)
+        bounds = (0, 0, 55, 55)
         pyxel.init(*bounds[2:], caption="Beetle Charm")
         pyxel.load('assets/beetle-box.pyxel')
         self.player = Player(bounds)

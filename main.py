@@ -2,6 +2,7 @@ import logging
 import math
 import pyxel
 import random
+import time
 
 import pdb
 
@@ -229,6 +230,7 @@ class App:
     Main game code.
     '''
     def __init__(self):
+        self.start = time.clock()
         bounds = (0, 0, 255, 255)
         pyxel.init(*bounds[2:], caption="Beetle Charm")
         pyxel.load('assets/beetle-box.pyxel')

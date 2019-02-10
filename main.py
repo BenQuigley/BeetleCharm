@@ -1,7 +1,7 @@
 import logging
+import math
 import pyxel
 import random
-import itertools
 
 import pdb
 
@@ -108,15 +108,16 @@ class VisibleMap:
     '''
     The map on which the game is played.
     '''
-    def __init__(self):
+    def __init__(self, bounds):
         plate_assets = [
                          (16, 0, 8, 8),
                          (24, 0, 8, 8),
                          (16, 8, 8, 8),
                          (24, 8, 8, 8),
                         ]
-        screen_positions = [[i * 8, j * 8] for j in range(15)
-                            for i in range(20)]
+        screen_positions = [[i * 8, j * 8] for j in range(math.ceil(bounds[2]/8))
+                            for i in range(math.ceil(bounds[2]/8))]
+        self.bounds = bounds
         self.plates = []
         for i, pos in enumerate(screen_positions):
             tile = random.choice(plate_assets)
@@ -228,11 +229,11 @@ class App:
     Main game code.
     '''
     def __init__(self):
-        bounds = (0, 0, 160, 120)
+        bounds = (0, 0, 255, 255)
         pyxel.init(*bounds[2:], caption="Beetle Charm")
         pyxel.load('assets/beetle-box.pyxel')
         self.player = Player(bounds)
-        self.visible_map = VisibleMap()
+        self.visible_map = VisibleMap(bounds)
         self.things = [self.visible_map, self.player]
         pyxel.playm(0, loop=True)
 

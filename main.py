@@ -165,6 +165,7 @@ class Player():
         self.sprite = Sprite(self.x, self.y, asset_lib=self.assets,
                              transparent_color=0)
         self.game_location = []
+        self.rhythm = 0
         self.speed = 0
         self.points = 0
         self.alive = True
@@ -177,15 +178,17 @@ class Player():
         logger.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
-        self.tempo += 1
-        # Speed limit:
+        # Speed limit.
         if self.speed < -1:
             self.speed = -1
         elif self.speed > 2:
             self.speed = 2
-        if self.tempo % 2 == 0:
-            self.walk()
+
         # Update sprite with properties
+        self.rhythm += 1
+        self.rhythm %= 4
+        if self.rhythm == 2:
+            self.walk()
         self.sprite.x = self.x
         self.sprite.y = self.y
         self.update_asset()

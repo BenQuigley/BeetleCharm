@@ -10,8 +10,8 @@ To install and run:
 
     $ git clone https://github.com/BenQuigley/BeetleCharm
     $ cd BeetleCharm
-    $ pipenv install
-    $ pipenv run python main.py
+    $ pip install -r requirements.txt
+    $ python main.py
 
 To Do
 -----

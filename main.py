@@ -33,18 +33,6 @@ def invert_down(x_pos: int, y_pos: int, width: int, height: int) -> Rect:
     return (x_pos, y_pos, width, -1 * height)
 
 
-def in_bounds(asset: Rect, bounds: Rect):
-    """
-    :param coords: A 2-tuple of x, y coordinates.
-    :param bounds: A 4-tuple: x, y, width, height.
-    """
-    in_bounds_left = asset[0] >= bounds[0]
-    in_bounds_right = asset[0] + asset[2] <= bounds[0] + bounds[2]
-    in_bounds_up = asset[1] >= bounds[1]
-    in_bounds_down = asset[1] + asset[3] <= bounds[1] + bounds[3]
-    return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
-
-
 def four_directions(north: Rect, east: Rect) -> Tuple[Rect, Rect,
                                                       Rect, Rect]:
     """We can generate all directions if N and E are supplied."""
@@ -105,6 +93,24 @@ class Sprite:
         self.asset_lib = build_asset_lib(asset_lib)
         self.asset = asset_lib['main'][0]
         self.trans = transparent_color
+
+    @property
+    def width(self):
+        """The image's width."""
+        return abs(self.asset[2])
+
+    @property
+    def height(self):
+        """The image's height."""
+        return abs(self.asset[3])
+
+    def in_bounds(self, pos: Coords, bounds: Rect) -> bool:
+        """Would the sprite be in bounds at a given position?"""
+        ok_left = pos[0] >= bounds[0]
+        ok_right = pos[0] + self.width <= bounds[0] + bounds[2]
+        ok_up = pos[1] >= bounds[1]
+        ok_down = pos[1] + self.height <= bounds[1] + bounds[3]
+        return all((ok_left, ok_right, ok_up, ok_down))
 
     def draw(self):
         """Draw the sprite to the screen."""
@@ -215,15 +221,12 @@ class Player:
         if self.speed:
             movement = advance(self.pointing, self.speed)
             self.sprite.asset_key = 'alt' if self.sprite.asset_key == 'main' else 'main'  # noqa
-            x_pos = self.x_pos + movement[0]
-            y_pos = self.y_pos + movement[1]
-            hypothetical_params = [x_pos, y_pos, self.sprite.asset[2],
-                                   self.sprite.asset[3]]
-            if in_bounds(hypothetical_params, self.bounds):
-                self.x_pos = x_pos
-                self.y_pos = y_pos
-                LOGGER.info("Walking in %s direction to %s, %s", movement,
-                            self.x_pos, self.y_pos)
+            hypothetical_pos = (self.x_pos + movement[0],
+                                self.y_pos + movement[1])
+            if self.sprite.in_bounds(hypothetical_pos, self.bounds):
+                self.x_pos, self.y_pos = hypothetical_pos
+                LOGGER.debug("Walking in %s direction to %s, %s", movement,
+                             self.x_pos, self.y_pos)
             else:
                 LOGGER.info("Bumped into a wall.")
 

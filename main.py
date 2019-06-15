@@ -1,36 +1,43 @@
+"""
+A game about a beetle.
+"""
 import logging
 import math
-import pyxel
+import pdb  # pylint: disable=unused-import
 import random
 import time
 
-import pdb
+from typing import Dict, Tuple
 
-logger = logging.getLogger("Beetle Charm logger")
-handler = logging.StreamHandler()
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
-logger.info('Beetle Charm initialized.')
+import pyxel
 
 
-def invert_left(x, y, width, height):
-    return (x, y, -1 * width, height)
+LOGGER = logging.getLogger("Beetle Charm logger")
+HANDLER = logging.StreamHandler()
+LOGGER.addHandler(HANDLER)
+LOGGER.setLevel(logging.DEBUG)
+LOGGER.info('Beetle Charm initialized.')
+
+Coords = Tuple[int, int]
+Rect = Tuple[int, int, int, int]
+Asset = Dict[str, Rect]
 
 
-def invert_down(x, y, width, height):
-    return (x, y, width, -1 * height)
+def invert_left(x_pos: int, y_pos: int, width: int, height: int) -> Rect:
+    """Invert a grid horizontally."""
+    return (x_pos, y_pos, -1 * width, height)
 
 
-start = (16, 0, 8, 8)
-assert invert_left(*start) == (16, 0, -8, 8)
-assert invert_down(*start) == (16, 0, 8, -8)
+def invert_down(x_pos: int, y_pos: int, width: int, height: int) -> Rect:
+    """Invert a grid vertically."""
+    return (x_pos, y_pos, width, -1 * height)
 
 
-def in_bounds(asset, bounds):
-    '''
+def in_bounds(asset: Rect, bounds: Rect):
+    """
     :param coords: A 2-tuple of x, y coordinates.
     :param bounds: A 4-tuple: x, y, width, height.
-    '''
+    """
     in_bounds_left = asset[0] >= bounds[0]
     in_bounds_right = asset[0] + asset[2] <= bounds[0] + bounds[2]
     in_bounds_up = asset[1] >= bounds[1]
@@ -38,62 +45,60 @@ def in_bounds(asset, bounds):
     return all([in_bounds_left, in_bounds_right, in_bounds_up, in_bounds_down])
 
 
-def four_directions(n, e):
-    '''
-    We can generate all directions if N and E are supplied.
-    '''
-    s = invert_down(*n)
-    w = invert_left(*e)
-    return [n, e, s, w]
+def four_directions(north: Rect, east: Rect) -> Tuple[Rect, Rect,
+                                                      Rect, Rect]:
+    """We can generate all directions if N and E are supplied."""
+    south = invert_down(*north)
+    west = invert_left(*east)
+    return (north, east, south, west)
 
 
-def build_asset_lib(asset):
-    '''
+def build_asset_lib(asset: Asset) -> Asset:
+    """
     Return the following views of an asset, in order.
     :param n: the asset's north-facing view.
     :param ne: the asset's northeast-facing view.
     :param e: the asset's east-facing view.
-    '''
-    main = asset['main']
+    """
+    primary = asset['main']
     alt = asset.get('alt') or ()
-    if len(main) >= 2:
-        asset['main'] = four_directions(*main)
+    if len(primary) >= 2:
+        asset['main'] = four_directions(*primary)
         if alt:
             asset['alt'] = four_directions(*alt)
     return asset
 
 
-def advance(direction: int, speed: int):
-    '''
+def advance(direction: int, speed: int) -> Tuple[float, float]:
+    """Return delta_x and delta_y for the velocity given.
     With 0 being north, 2 east, 4 south, etc.,
-    :return: (dx, dy) for the direction given.
-    '''
+    """
     direction %= 8
-    (dx, dy) = ((0, -1),   # north
-                (1, -1),   # northeast
-                (1, 0),    # east
-                (1, 1),    # southeast
-                (0, 1),    # south
-                (-1, 1),   # southwest
-                (-1, 0),   # west
-                (-1, -1),  # northwest
-                )[direction]
-    logger.info("Advancing in direction {}: dx= {}; dy={}".format(
-                         direction, dx, dy))
-    return (dx * speed, dy * speed)
+    (delta_x, delta_y) = (
+        (0, -1),   # north
+        (1, -1),   # northeast
+        (1, 0),    # east
+        (1, 1),    # southeast
+        (0, 1),    # south
+        (-1, 1),   # southwest
+        (-1, 0),   # west
+        (-1, -1),  # northwest
+    )[direction]
+    LOGGER.info("Advancing in direction {}: delta_x = {}; delta_y={}".format(
+        direction, delta_x, delta_y)
+    )
+    return (delta_x * speed, delta_y * speed)
 
 
 class Sprite:
-    '''
-    Anything simple enough to be drawn just by blitting it to the screen.
-    '''
+    """Anything simple enough to be drawn just by blitting it to the screen."""
     def __init__(self, x, y, single_asset=None, asset_lib=None,
                  transparent_color=0):
-        '''
+        """
         :param asset: Expects a dict, but can handle a regular asset.
-        '''
-        self.x = x
-        self.y = y
+        """
+        self.x_pos = x
+        self.y_pos = y
         if single_asset:
             asset_lib = {'main': [single_asset]}
         self.asset_key = 'main'
@@ -102,20 +107,19 @@ class Sprite:
         self.trans = transparent_color
 
     def draw(self):
-        pyxel.blt(self.x, self.y, 0, *self.asset, self.trans)
+        """Draw the sprite to the screen."""
+        pyxel.blt(self.x_pos, self.y_pos, 0, *self.asset, self.trans)
 
 
 class VisibleMap:
-    '''
+    """
     The map on which the game is played.
-    '''
+    """
     def __init__(self, bounds):
-        plate_assets = [
-                         (16, 0, 8, 8),
-                         (24, 0, 8, 8),
-                         (16, 8, 8, 8),
-                         (24, 8, 8, 8),
-                        ]
+        plate_assets = ((16, 0, 8, 8),
+                        (24, 0, 8, 8),
+                        (16, 8, 8, 8),
+                        (24, 8, 8, 8))
         screen_positions = [[i * 8, j * 8] for j in range(math.ceil(bounds[2]/8))
                             for i in range(math.ceil(bounds[2]/8))]
         self.bounds = bounds
@@ -140,29 +144,29 @@ class VisibleMap:
             plate.draw()
 
 
-class Player():
-    '''
+class Player:
+    """
     The person playing the game.
-    '''
+    """
     def __init__(self, bounds):
         self.bounds = bounds
-        self.x = random.randrange(bounds[0], bounds[2])
-        self.y = random.randrange(bounds[1], bounds[3])
+        self.x_pos = random.randrange(bounds[0], bounds[2])
+        self.y_pos = random.randrange(bounds[1], bounds[3])
         self.tempo = 0
         self.assets = {
-                       'main': [
-                                (0, 0, 8, 8),  # N
-                                (0, 8, 8, 8),  # E
-                               ],
-                       'alt': [
-                               (8, 0, 8, 8),  # N
-                               (8, 8, 8, 8),  # E
-                               ],
-                      }
+            'main': [
+                (0, 0, 8, 8),  # N
+                (0, 8, 8, 8),  # E
+            ],
+            'alt': [
+                (8, 0, 8, 8),  # N
+                (8, 8, 8, 8),  # E
+            ],
+        }
         self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.
-        logger.info("Beetle initialized at {}, {} pointing at {}.".format(
-                    self.x, self.y, self.pointing))
-        self.sprite = Sprite(self.x, self.y, asset_lib=self.assets,
+        LOGGER.info("Beetle initialized at {}, {} pointing at {}.".format(
+                    self.x_pos, self.y_pos, self.pointing))
+        self.sprite = Sprite(self.x_pos, self.y_pos, asset_lib=self.assets,
                              transparent_color=0)
         self.game_location = []
         self.rhythm = 0
@@ -175,7 +179,7 @@ class Player():
         self.prev_pointing = self.pointing
         self.pointing += direction
         self.pointing %= 8
-        logger.info(f"Turning {direction} to {self.pointing}")
+        LOGGER.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
         # Speed limit.
@@ -189,16 +193,15 @@ class Player():
         self.rhythm %= 4
         if self.rhythm == 2:
             self.walk()
-        self.sprite.x = self.x
-        self.sprite.y = self.y
+        self.sprite.x_pos = self.x_pos
+        self.sprite.y_pos = self.y_pos
         self.update_asset()
 
     def update_asset(self):
-        '''
-
+        """
         Update the sprite to use the correct asset for the direction the sprite
         is pointing and its walk cycle.
-        '''
+        """
         if self.pointing % 2 == 0:
             index = int(self.pointing/2)
         else:
@@ -206,33 +209,35 @@ class Player():
         self.sprite.asset = self.sprite.asset_lib[self.sprite.asset_key][index]
 
     def walk(self):
+        """
+        Move the sprite according to its walking speed..
+        """
         if self.speed:
             movement = advance(self.pointing, self.speed)
             self.sprite.asset_key = 'alt' if self.sprite.asset_key == 'main' else 'main'  # noqa
-            x = self.x + movement[0]
-            y = self.y + movement[1]
-            hypothetical_params = [x, y, self.sprite.asset[2],
+            x_pos = self.x_pos + movement[0]
+            y_pos = self.y_pos + movement[1]
+            hypothetical_params = [x_pos, y_pos, self.sprite.asset[2],
                                    self.sprite.asset[3]]
             if in_bounds(hypothetical_params, self.bounds):
-                self.x = x
-                self.y = y
-                logger.info("Walking in {} direction to {}, {}".format(
-                            movement, self.x, self.y))
+                self.x_pos = x_pos
+                self.y_pos = y_pos
+                LOGGER.info("Walking in %s direction to %s, %s", movement,
+                            self.x_pos, self.y_pos)
             else:
-                logger.info("Bumped into a wall.")
+                LOGGER.info("Bumped into a wall.")
 
     def draw(self):
-        '''
-        Draw the player's sprite.
-        '''
+        """Draw the player's sprite."""
         self.sprite.draw()
 
 
 class App:
-    '''
+    """
     Main game code.
-    '''
+    """
     def __init__(self):
+        """Initial game setup."""
         self.start = time.clock()
         bounds = (0, 0, 55, 55)
         pyxel.init(*bounds[2:], caption="Beetle Charm")
@@ -243,9 +248,11 @@ class App:
         pyxel.playm(0, loop=True)
 
     def run(self):
+        """Start the game using the pyxel engine."""
         pyxel.run(self.update, self.draw)
 
     def update(self):
+        """Update the game settings."""
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
         elif pyxel.btnp(pyxel.KEY_W):
@@ -261,19 +268,18 @@ class App:
             objekt.update()
 
     def draw(self):
-        '''
-        Draw everything.
-        '''
+        """Draw everything."""
         pyxel.cls(1)
         for objekt in self.things:
             objekt.draw()
 
 
 def main():
-    a = App()
-    logger.info("Beetle Charm loaded successfully.")
-    a.run()
-    logger.info("Thank you for playing.")
+    """Main control flow function."""
+    app = App()
+    LOGGER.info("Beetle Charm loaded successfully.")
+    app.run()
+    LOGGER.info("Thank you for playing.")
 
 
 if __name__ == '__main__':

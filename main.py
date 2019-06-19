@@ -7,7 +7,7 @@ import pdb  # pylint: disable=unused-import
 import random
 import time
 
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import pyxel
 
@@ -20,7 +20,7 @@ LOGGER.info('Beetle Charm initialized.')
 
 Coords = Tuple[int, int]
 Rect = Tuple[int, int, int, int]
-Asset = Dict[str, Rect]
+Asset = Dict[str, List[Rect]]
 
 
 def invert_left(x_pos: int, y_pos: int, width: int, height: int) -> Rect:
@@ -73,22 +73,20 @@ def advance(direction: int, speed: int) -> Tuple[float, float]:
         (-1, -1),  # northwest
     )[direction]
     LOGGER.info("Advancing in direction {}: delta_x = {}; delta_y={}".format(
-        direction, delta_x, delta_y)
-    )
+        direction, delta_x, delta_y
+    ))
     return (delta_x * speed, delta_y * speed)
 
 
 class Sprite:
     """Anything simple enough to be drawn just by blitting it to the screen."""
-    def __init__(self, x, y, single_asset=None, asset_lib=None,
-                 transparent_color=0):
+    def __init__(self, x: int, y: int, asset_lib: Asset,
+                 transparent_color: int = 0):
         """
         :param asset: Expects a dict, but can handle a regular asset.
         """
         self.x_pos = x
         self.y_pos = y
-        if single_asset:
-            asset_lib = {'main': [single_asset]}
         self.asset_key = 'main'
         self.asset_lib = build_asset_lib(asset_lib)
         self.asset = asset_lib['main'][0]
@@ -126,7 +124,8 @@ class VisibleMap:
                         (24, 0, 8, 8),
                         (16, 8, 8, 8),
                         (24, 8, 8, 8))
-        screen_positions = [[i * 8, j * 8] for j in range(math.ceil(bounds[2]/8))
+        padded_map_size = math.ceil(bounds[2]/8)
+        screen_positions = [[i * 8, j * 8] for j in range(padded_map_size)
                             for i in range(math.ceil(bounds[2]/8))]
         self.bounds = bounds
         self.plates = []
@@ -138,7 +137,7 @@ class VisibleMap:
                 tile = invert_left(*tile)
             if i % 2 == 0:
                 tile = invert_down(*tile)
-            sprite = Sprite(*pos, single_asset=tile)
+            sprite = Sprite(*pos, asset_lib={'main': (tile,)})
             self.plates.append(sprite)
 
     def update(self):

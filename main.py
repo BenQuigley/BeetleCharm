@@ -41,26 +41,9 @@ def four_directions(north: Rect, east: Rect) -> Tuple[Rect, Rect,
     return (north, east, south, west)
 
 
-def build_asset_lib(asset: Asset) -> Asset:
-    """
-    With an asset containing a N and an E view, create rotations to return the
-    following views, in order:
-    :param n: the asset's north-facing view.
-    :param ne: the asset's northeast-facing view.
-    :param e: the asset's east-facing view.
-    """
-    primary = asset['main']
-    alt = asset.get('alt') or ()
-    assert len(primary) >= 2  # todo
-    asset['main'] = four_directions(*primary)
-    if alt:
-        asset['alt'] = four_directions(*alt)
-    return asset
-
-
 def advance(direction: int, speed: int) -> Tuple[float, float]:
     """Return delta_x and delta_y for the velocity given.
-    With 0 being north, 2 east, 4 south, etc.,
+    With 0 being north, 2 east, 4 south, etc.
     """
     direction %= 8
     (delta_x, delta_y) = (
@@ -80,14 +63,12 @@ def advance(direction: int, speed: int) -> Tuple[float, float]:
 
 
 class Sprite:
-    """Anything simple enough to be drawn just by blitting it to the screen."""
-    def __init__(self, x: int, y: int, asset_lib: Asset,
+    """A graphics manager for a game object."""
+    def __init__(self, x: int, y: int, asset: Asset,
                  transparent_color: int = 0):
         self.x_pos = x
         self.y_pos = y
-        self.asset_key = 'main'  # To toggle for walk animation
-        self.asset_lib = build_asset_lib(asset_lib)
-        self.asset = asset_lib['main'][0]
+        self.asset = asset['main'][0]
         self.trans = transparent_color
 
     @property
@@ -118,6 +99,7 @@ class VisibleMap:
     The map on which the game is played.
     """
     def __init__(self, bounds):
+        LOGGER.info("Making the map.")
         plate_assets = ((16, 0, 8, 8),
                         (24, 0, 8, 8),
                         (16, 8, 8, 8),
@@ -135,7 +117,7 @@ class VisibleMap:
                 tile = invert_left(*tile)
             if i % 2 == 0:
                 tile = invert_down(*tile)
-            sprite = Sprite(*pos, asset_lib={'main': (tile,)})
+            sprite = Sprite(*pos, asset={'main': (tile,)})
             self.plates.append(sprite)
 
     def update(self):
@@ -153,24 +135,25 @@ class Player:
     The person playing the game.
     """
     def __init__(self, bounds):
+        LOGGER.info("Making the player.")
         self.bounds = bounds
         self.x_pos = random.randrange(bounds[0], bounds[2])
         self.y_pos = random.randrange(bounds[1], bounds[3])
-        self.tempo = 0
+        self.asset_key = 'main'  # to toggle for walk animation
         self.assets = {
-            'main': [
+            'main': four_directions(
                 (0, 0, 8, 8),  # N
                 (0, 8, 8, 8),  # E
-            ],
-            'alt': [
+            ),
+            'alt': four_directions(
                 (8, 0, 8, 8),  # N
                 (8, 8, 8, 8),  # E
-            ],
+            ),
         }
         self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.
         LOGGER.info("Beetle initialized at {}, {} pointing at {}.".format(
             self.x_pos, self.y_pos, self.pointing))
-        self.sprite = Sprite(self.x_pos, self.y_pos, asset_lib=self.assets,
+        self.sprite = Sprite(self.x_pos, self.y_pos, asset=self.assets,
                              transparent_color=0)
         self.game_location = []
         self.rhythm = 0
@@ -209,17 +192,19 @@ class Player:
         Update the sprite to use the correct asset for the direction the sprite
         is pointing and its walk cycle.
         """
+        print(self.sprite.asset)
         if self.pointing % 2 == 0:
             index = int(self.pointing/2)
         else:
             index = int(self.prev_pointing/2)
-        self.sprite.asset = self.sprite.asset_lib[self.sprite.asset_key][index]
+        print("INDEX", index)
+        self.sprite.asset = self.assets[self.asset_key][index]
 
     def walk(self):
         """Move the sprite according to its walking speed."""
         if self.speed:
             movement = advance(self.pointing, self.speed)
-            self.sprite.asset_key = 'alt' if self.sprite.asset_key == 'main' else 'main'  # noqa
+            self.asset_key = 'alt' if self.asset_key == 'main' else 'main'  # noqa
             hypothetical_pos = (self.x_pos + movement[0],
                                 self.y_pos + movement[1])
             if self.sprite.in_bounds(hypothetical_pos, self.bounds):
@@ -240,6 +225,7 @@ class App:
     """
     def __init__(self):
         """Initial game setup."""
+        LOGGER.info("Making the app.")
         self.start = time.clock()
         bounds = (0, 0, 55, 55)
         pyxel.init(*bounds[2:], caption="Beetle Charm")

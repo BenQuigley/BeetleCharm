@@ -164,26 +164,14 @@ class Player:
     def rotate(self, direction):
         """Turn the object around."""
         assert direction in (-1, 0, 1)  # counterclockwise, straight, clockwise
-        self.prev_pointing = self.pointing
-        self.pointing += direction
         self.pointing %= 8
         LOGGER.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
         """Inter-turn logic."""
-        # Speed limit.
-        if self.speed < -1:
-            self.speed = -1
-        elif self.speed > 2:
-            self.speed = 2
 
         # Update sprite with properties
-        self.rhythm += 1
-        self.rhythm %= 4
-        if self.rhythm == 2:
-            self.walk()
-        self.sprite.x_pos = self.x_pos
-        self.sprite.y_pos = self.y_pos
+        self.sprite.position = self.position
         self.update_asset()
 
     def update_asset(self):
@@ -200,13 +188,14 @@ class Player:
         print("INDEX", index)
         self.sprite.asset = self.assets[self.asset_key][index]
 
-    def walk(self):
-        """Move the sprite according to its walking speed."""
-        if self.speed:
-            movement = advance(self.pointing, self.speed)
-            self.asset_key = 'alt' if self.asset_key == 'main' else 'main'  # noqa
-            hypothetical_pos = (self.x_pos + movement[0],
-                                self.y_pos + movement[1])
+    def walk(self, direction, distance=5):
+        """Move the sprite a certain distance."""
+        self.pointing = direction
+        if distance:
+            movement = advance(self.pointing, distance)
+            self.asset_key = "alt" if self.asset_key == "main" else "main"
+            hypothetical_pos = [self.position[0] + movement[0],
+                                self.position[1] + movement[1]]
             if self.sprite.in_bounds(hypothetical_pos, self.bounds):
                 self.x_pos, self.y_pos = hypothetical_pos
                 LOGGER.debug("Walking in %s direction to %s, %s", movement,
@@ -241,16 +230,19 @@ class App:
 
     def update(self):
         """Update the game settings."""
+        # This could use a refactor, but it's pointless to refactor before we know what
+        # all the controls should be.
+
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
         elif pyxel.btnp(pyxel.KEY_W):
-            self.player.speed += 1
-        elif pyxel.btnp(pyxel.KEY_S):
-            self.player.speed -= 1
-        elif pyxel.btnp(pyxel.KEY_A):
-            self.player.rotate(-1)
+            self.player.walk(0)
         elif pyxel.btnp(pyxel.KEY_D):
-            self.player.rotate(1)
+            self.player.walk(2)
+        elif pyxel.btnp(pyxel.KEY_S):
+            self.player.walk(4)
+        elif pyxel.btnp(pyxel.KEY_A):
+            self.player.walk(6)
 
         for objekt in self.things:
             objekt.update()

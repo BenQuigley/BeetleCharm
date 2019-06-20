@@ -43,17 +43,18 @@ def four_directions(north: Rect, east: Rect) -> Tuple[Rect, Rect,
 
 def build_asset_lib(asset: Asset) -> Asset:
     """
-    Return the following views of an asset, in order.
+    With an asset containing a N and an E view, create rotations to return the
+    following views, in order:
     :param n: the asset's north-facing view.
     :param ne: the asset's northeast-facing view.
     :param e: the asset's east-facing view.
     """
     primary = asset['main']
     alt = asset.get('alt') or ()
-    if len(primary) >= 2:
-        asset['main'] = four_directions(*primary)
-        if alt:
-            asset['alt'] = four_directions(*alt)
+    assert len(primary) >= 2  # todo
+    asset['main'] = four_directions(*primary)
+    if alt:
+        asset['alt'] = four_directions(*alt)
     return asset
 
 
@@ -82,12 +83,9 @@ class Sprite:
     """Anything simple enough to be drawn just by blitting it to the screen."""
     def __init__(self, x: int, y: int, asset_lib: Asset,
                  transparent_color: int = 0):
-        """
-        :param asset: Expects a dict, but can handle a regular asset.
-        """
         self.x_pos = x
         self.y_pos = y
-        self.asset_key = 'main'
+        self.asset_key = 'main'  # To toggle for walk animation
         self.asset_lib = build_asset_lib(asset_lib)
         self.asset = asset_lib['main'][0]
         self.trans = transparent_color
@@ -141,10 +139,11 @@ class VisibleMap:
             self.plates.append(sprite)
 
     def update(self):
+        """Inter-turn logic."""
         # todo: check whether a new tile needs to be rendered.
-        pass
 
     def draw(self):
+        """Blit the image of the plates to the screen."""
         for plate in self.plates:
             plate.draw()
 
@@ -170,7 +169,7 @@ class Player:
         }
         self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.
         LOGGER.info("Beetle initialized at {}, {} pointing at {}.".format(
-                    self.x_pos, self.y_pos, self.pointing))
+            self.x_pos, self.y_pos, self.pointing))
         self.sprite = Sprite(self.x_pos, self.y_pos, asset_lib=self.assets,
                              transparent_color=0)
         self.game_location = []
@@ -180,6 +179,7 @@ class Player:
         self.alive = True
 
     def rotate(self, direction):
+        """Turn the object around."""
         assert direction in (-1, 0, 1)  # counterclockwise, straight, clockwise
         self.prev_pointing = self.pointing
         self.pointing += direction
@@ -187,6 +187,7 @@ class Player:
         LOGGER.info(f"Turning {direction} to {self.pointing}")
 
     def update(self):
+        """Inter-turn logic."""
         # Speed limit.
         if self.speed < -1:
             self.speed = -1
@@ -203,7 +204,8 @@ class Player:
         self.update_asset()
 
     def update_asset(self):
-        """
+        """Inter-turn logic.
+
         Update the sprite to use the correct asset for the direction the sprite
         is pointing and its walk cycle.
         """
@@ -214,9 +216,7 @@ class Player:
         self.sprite.asset = self.sprite.asset_lib[self.sprite.asset_key][index]
 
     def walk(self):
-        """
-        Move the sprite according to its walking speed..
-        """
+        """Move the sprite according to its walking speed."""
         if self.speed:
             movement = advance(self.pointing, self.speed)
             self.sprite.asset_key = 'alt' if self.sprite.asset_key == 'main' else 'main'  # noqa

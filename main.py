@@ -44,18 +44,20 @@ def advance(direction: int, speed: int) -> Tuple[float, float]:
     """
     direction %= 8
     (delta_x, delta_y) = (
-        (0, -1),   # north
-        (1, -1),   # northeast
-        (1, 0),    # east
-        (1, 1),    # southeast
-        (0, 1),    # south
-        (-1, 1),   # southwest
-        (-1, 0),   # west
+        (0, -1),  # north
+        (1, -1),  # northeast
+        (1, 0),  # east
+        (1, 1),  # southeast
+        (0, 1),  # south
+        (-1, 1),  # southwest
+        (-1, 0),  # west
         (-1, -1),  # northwest
     )[direction]
     LOGGER.info(
         "Advancing in direction %s: delta_x = %s; delta_y=%s",
-        direction, delta_x, delta_y
+        direction,
+        delta_x,
+        delta_y,
     )
     return (delta_x * speed, delta_y * speed)
 
@@ -63,7 +65,9 @@ def advance(direction: int, speed: int) -> Tuple[float, float]:
 class Sprite:
     """A graphics manager for a game object."""
 
-    def __init__(self, x: int, y: int, asset: Asset, transparent_color: int = 0):
+    def __init__(
+        self, x: int, y: int, asset: Asset, transparent_color: int = 0
+    ):
         self.position = [x, y]
         self.asset = asset["main"][0]
         self.trans = transparent_color
@@ -98,10 +102,12 @@ class VisibleMap:
 
     def __init__(self, bounds):
         LOGGER.info("Making the map.")
-        plate_assets = ((16, 0, 8, 8),
-                        (24, 0, 8, 8),
-                        (16, 8, 8, 8),
-                        (24, 8, 8, 8))
+        plate_assets = (
+            (16, 0, 8, 8),
+            (24, 0, 8, 8),
+            (16, 8, 8, 8),
+            (24, 8, 8, 8),
+        )
         padded_map_size = math.ceil(bounds[2] / 8)
         screen_positions = [
             [i * 8, j * 8]
@@ -135,28 +141,26 @@ class Player:
     """
     The person playing the game.
     """
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, bounds):
         LOGGER.info("Making the player.")
         self.bounds = bounds
-        self.position = [random.randrange(bounds[0], bounds[2]),
-                         random.randrange(bounds[1], bounds[3])]
+        self.position = [
+            random.randrange(bounds[0], bounds[2]),
+            random.randrange(bounds[1], bounds[3]),
+        ]
         self.asset_key = "main"  # to toggle for walk animation
         self.assets = {
-            'main': four_directions(
-                (0, 0, 8, 8),  # N
-                (0, 8, 8, 8),  # E
-            ),
-            'alt': four_directions(
-                (8, 0, 8, 8),  # N
-                (8, 8, 8, 8),  # E
-            ),
+            "main": four_directions((0, 0, 8, 8), (0, 8, 8, 8)),  # (N, E)
+            "alt": four_directions((8, 0, 8, 8), (8, 8, 8, 8)),
         }
         self.pointing = random.choice([0, 2, 4, 6])  # A cardinal direction.
         LOGGER.info(
             "Beetle initialized at %s, %s pointing at %s.",
-            *self.position, self.pointing
+            *self.position,
+            self.pointing,
         )
         self.sprite = Sprite(
             *self.position, asset=self.assets, transparent_color=0
@@ -166,7 +170,11 @@ class Player:
 
     def rotate(self, direction):
         """Turn the object around."""
-        assert direction in (-1, 0, 1)  # counterclockwise, straight, clockwise
+        assert direction in (
+            -1,
+            0,
+            1,
+        )  # counterclockwise, straight, clockwise
         self.pointing %= 8
         LOGGER.info("Turning %s to %s", direction, self.pointing)
 
@@ -195,8 +203,10 @@ class Player:
         if distance:
             movement = advance(self.pointing, distance)
             self.asset_key = "alt" if self.asset_key == "main" else "main"
-            hypothetical_pos = [self.position[0] + movement[0],
-                                self.position[1] + movement[1]]
+            hypothetical_pos = [
+                self.position[0] + movement[0],
+                self.position[1] + movement[1],
+            ]
             if self.sprite.in_bounds(hypothetical_pos, self.bounds):
                 self.position = hypothetical_pos
                 LOGGER.debug(
@@ -235,8 +245,8 @@ class App:
 
     def update(self):
         """Update the game settings."""
-        # This could use a refactor, but it's pointless to refactor before we know what
-        # all the controls should be.
+        # This could use a refactor, but it's pointless to refactor before we
+        # know what all the controls should be.
 
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()

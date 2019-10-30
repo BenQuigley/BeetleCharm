@@ -6,7 +6,7 @@ A pixel game about a beetle.
 Usage
 -----
 
-To install and run:
+To install and run::
 
     $ git clone https://gitlab.com/bquigley/beetlecharm
     $ cd beetlecharm

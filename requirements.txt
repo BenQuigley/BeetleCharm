@@ -1,7 +1,7 @@
 cffi==1.12.3
 glfw==1.8.1
 numpy==1.16.4
-Pillow==6.0.0
+Pillow==8.3.2
 pycparser==2.19
 PyOpenGL==3.1.0
 pyxel==1.0.2
